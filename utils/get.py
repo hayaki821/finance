@@ -2,6 +2,9 @@ import pandas as pd
 import json
 import numpy as np
 
+DATA_PATH = "../data"
+MARKET_INFO_PATH = DATA_PATH + "/market_info"
+
 # NYダウ
 def dj():
     DJ=['AAPL','AXP','BA','CAT','CSCO','CVX','DIS','GS','HD',
@@ -16,24 +19,34 @@ def index():
            "^NYL","^XMI","^OEX","^GSPC","^HSI","^FCHI","^BVSP","^N225","^RUA","^XAX"]
     return INDEX
 
-# 日経平均株価（csvファイル必須）
+# 日経平均株価(2021年6月現在)（csvファイル必須）
 def n225():
-    n225 = pd.read_csv("./trade_package/data/market_info/nikkei225_all_code.csv", engine="python", names=("code","name"))
+    n225 = pd.read_csv(MARKET_INFO_PATH + "/nikkei_20210531.csv", engine="python",names=["code"], usecols=[0],encoding="UTF-8")
     return n225
 
-# TPIX500（csvファイル必須）
+# TPIX500(2021年6月現在)（csvファイル必須）
 def topix500():
-    topix500 = pd.read_csv("./trade_package/data/market_info/topix500_all_code.csv", engine="python", names=("code","name"),usecols=[0,1])
+    topix500 = pd.read_csv(MARKET_INFO_PATH + "/topix500_20210531.csv", engine="python", names=["code"],usecols=[0,1],skiprows=1,encoding="UTF-8")
     return topix500
+
+# TPIX1000(2021年6月現在)（csvファイル必須）
+def topix1000():
+    topix1000 = pd.read_csv(MARKET_INFO_PATH + "/topix1000_20210531.csv", engine="python", names=["code"],usecols=[0,1],skiprows=1,encoding="UTF-8")
+    return topix1000
+
+# 東証一部貸借　銘柄一覧csv(2021年6月現在)（csvファイル必須）
+def t1_taisyaku():
+    t1_taisyaku = pd.read_csv(MARKET_INFO_PATH + "/t1_taisyaku_202105.csv", engine="python", names=["code"],usecols=[0,1],skiprows=1,encoding="UTF-8")
+    return t1_taisyaku
 
 # Mothers上場銘柄（csvファイル必須）
 def mothers():
-    mothers = pd.read_csv("./trade_package/data/market_info/mothers_all_code.csv", engine="python", names=("code","name"))
+    mothers = pd.read_csv(MARKET_INFO_PATH + "/mothers_all_code.csv", engine="python", names=["code","name"])
     return mothers
     
 # 東証全銘柄
 def tokyo():
-    tokyo = pd.read_csv("./trade_package/data/market_info/tokyo_all_code.csv", engine="python", names=("date","code", "name","market", "CodeIndustry33", "ClassificationIndustry33", "CodeIndustry17", "ClassificationIndustry17", "CodeScale", "ClassificationScale"), skiprows=1, usecols=[1,2], encoding="utf-8")
+    tokyo = pd.read_csv(MARKET_INFO_PATH + "/tokyo_all_code.csv", engine="python", names=["date","code", "name","market", "CodeIndustry33", "ClassificationIndustry33", "CodeIndustry17", "ClassificationIndustry17", "CodeScale", "ClassificationScale"], skiprows=1, usecols=[1,2], encoding="utf-8")
     return tokyo
 
 # sp100

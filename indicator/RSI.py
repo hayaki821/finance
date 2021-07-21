@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from math import ceil 
 
 # 銘柄コードの読み込み
-stocks = get.topix500()
+stocks = get.topix1000()
 print(stocks)
 # resultデータフレーム作成
 day = [1,3,5,10]  # 株価を確認する日（〇日後の株価）
@@ -32,15 +32,15 @@ for i in range(-42,42,2):
 roc_map = pd.DataFrame(data=0,index=index,columns=col)
 
 for code in stocks.code:
-    print(code)
     # 用意した株価データの読み込み
-    read_data = tp.get.price(code)
-
+    code = str(code) +".T" 
+    read_data = get.price(code)
+    print(read_data)
     for p in range(len(period)):
         data = read_data.copy()
 
         # RSIを計算
-        tp.tech.rsi(data, period=period[p])
+        tech.rsi(data, period=period[p])
         data["buy_sign"] = False
 
         # タイミングを取得
