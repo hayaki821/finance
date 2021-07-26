@@ -4,10 +4,17 @@ from utils import * # libディレクトリ以下に設定した定数やutilク
 import pandas as pd
 import matplotlib.pyplot as plt
 from math import ceil 
+import os
 
+today = get_today()
+
+# タイミングを取得　RSIがこのpointを基準にする
+point = 20
+# save dir
+save_dir = "./RSI_toukei_p"+ str(point) + "/" + today
 # 銘柄コードの読み込み
-stocks = get.topix1000()
-print(stocks)
+stocks = get.topix500()
+
 # resultデータフレーム作成
 day = [1,3,5,10]  # 株価を確認する日（〇日後の株価）
 col=["buy_sign_count"]
@@ -33,35 +40,41 @@ roc_map = pd.DataFrame(data=0,index=index,columns=col)
 
 for code in stocks.code:
     # 用意した株価データの読み込み
-    code = str(code) +".T" 
+    code = change_stock_code(code)
+    # コードのprice情報を読み取る
+    #  date     High      Low     Open    Close    Volume     Adj Close
     read_data = get.price(code)
-    print(read_data)
+    
     for p in range(len(period)):
         data = read_data.copy()
 
         # RSIを計算
         tech.rsi(data, period=period[p])
         data["buy_sign"] = False
+        # ここまででカラムに rsi  buy_sign追加
 
-        # タイミングを取得
-        point = 20
         for i in range(len(data.index)-1):
             # 下回ったとき
             # if(data.rsi[i]>point and data.rsi[i+1]<=point):
             #     data["buy_sign"].iat[i+1] = True            
             # 下から上へ突破したとき
             if(data.rsi[i]<point and data.rsi[i+1]>=point):
+                # iat = 行番号
                 data["buy_sign"].iat[i+1] = True
 
-        # 〇日後に上昇しているか確認    
+        # 〇日後に上昇しているか確認
+        # ex) data.index[data.buy_sign] = DatetimeIndex(['2019-04-12', '2020-03-17'], dtype='datetime64[ns]', name='Date', freq=None)
         for bs in data.index[data.buy_sign]:
             for d in day:
+                # len(data.Close) = 値がある数（日数）、len(data.Close[:bs]　= 今何日目かみたいな
+                # 何%あがったか下がったかをroc_d +dにいれる
                 if(len(data.Close[:bs])+d<=len(data.Close)):
                     data.at[bs,"roc_d"+str(d)] = (data.Close[len(data.Close[:bs])+d-1]-data.Close[bs])/data.Close[bs]*100
                 else:
                     # 〇日後の株価がない場合は最新の株価
                     data.at[bs,"roc_d"+str(d)] = (data.Close[-1]-data.Close[bs])/data.Close[bs]*100
                 # 分布に振り分け
+                # 20が原点位置になる
                 roc_index = 20+ceil(data.at[bs,"roc_d"+str(d)]/2)
                 if(roc_index<0):
                     roc_index=0
@@ -69,25 +82,26 @@ for code in stocks.code:
                     roc_index=41   
                 roc_map.at[index[roc_index],"roc_p"+str(period[p])+"_d"+str(d)] += 1
 
-
+if not os.path.isdir(save_dir):
+    os.makedirs(save_dir)
 # 上昇した数をカウント/roc分布を画像出力
 for p in range(len(period)):
     result["buy_sign_count"].iat[p] = sum(roc_map.iloc[:,p*len(day)])
     for d in range(len(day)):
-            result["roc_d"+str(day[d])+"_plus"].iat[p]=sum(roc_map.iloc[21:,p*len(day)+d])
+        result["roc_d"+str(day[d])+"_plus"].iat[p]=sum(roc_map.iloc[21:,p*len(day)+d])
 
-            # roc分布を画像出力
-            fig = plt.figure(figsize=(16, 12))
-            ax = fig.add_subplot(111)
-            bar_list = ax.bar(roc_map.index,roc_map["roc_p"+str(period[p])+"_d"+str(day[d])], width=1, color="#8ac6d1")
-            [bar_list[i].set_color("#ffb6b9") for i in range(21)]
-            ax.set_xticklabels(roc_map.index,rotation=90)
-            ax.tick_params(labelsize=20)
-            ax.grid(axis="y",c="lightgray")
-            title = "RSI (period="+str(period[p])+", x day later="+str(day[d])+")"
-            ax.set_title(title,fontsize=24)
-            ax.set_xlabel("Rate of Change [%]", fontsize=24)
-            ax.set_ylabel("counts", fontsize=24)
-            fig.savefig(title+".png", bbox_inches='tight')
+        # roc分布を画像出力
+        fig = plt.figure(figsize=(16, 12))
+        ax = fig.add_subplot(111)
+        bar_list = ax.bar(roc_map.index,roc_map["roc_p"+str(period[p])+"_d"+str(day[d])], width=1, color="#8ac6d1")
+        [bar_list[i].set_color("#ffb6b9") for i in range(21)]
+        ax.set_xticklabels(roc_map.index,rotation=90)
+        ax.tick_params(labelsize=20)
+        ax.grid(axis="y",c="lightgray")
+        title = "RSI (period="+str(period[p])+", x day later="+str(day[d])+")"
+        ax.set_title(title,fontsize=24)
+        ax.set_xlabel("Rate of Change [%]", fontsize=24)
+        ax.set_ylabel("counts", fontsize=24)
+        fig.savefig(save_dir + "/" + title +".png", bbox_inches='tight')
 
 print(result)

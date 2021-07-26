@@ -1,4 +1,4 @@
-import mplfinance as mpf
+import mplfinance as mpf #ローソク足チャートを作製
 
 # ローソク足でプロット(panel="lower"で下のグラフにプロット)
 # パネルに複数のデータを追加可能だが、未対応（暇なときにする）

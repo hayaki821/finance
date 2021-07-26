@@ -6,6 +6,7 @@ from datetime import datetime,date
 import glob
 import pandas_datareader.data as web
 import yfinance as yf
+from .get import *
 
 # 新規で株価取得（日足,1銘柄）
 def price(stock_code,start=None,end=None):
@@ -15,15 +16,16 @@ def price(stock_code,start=None,end=None):
 # 新規で株価取得、csv保存（日足,1銘柄）
 def price_csv(stock_code,start=None,end=None):
     data = web.DataReader(stock_code,"yahoo",start,end)
-    data.to_csv('./trade_package/data/price\\'+stock_code+'.csv') 
+    data.to_csv('../data/price\\'+stock_code+'.csv') 
 
 # 新規株価の取得と既存株価の更新（日足,銘柄リスト）
 def price_update(stock_code:list,day=date.today()):
-    list_file_exist = glob.glob("./trade_package/data/price/*")
+    list_file_exist = glob.glob("../data/price/*")
     print("update_day:", end='')
     print(day)
     for code in stock_code:
-        filename = './trade_package/data/price\\'+code+'.csv'
+        code = change_stock_code(code)
+        filename = '../data/price\\'+code+'.csv'
         if filename in list_file_exist:
             df = pd.read_csv(filename,index_col=0,parse_dates=True)
             if(df.index[-1]==day):
@@ -48,22 +50,22 @@ def price_update(stock_code:list,day=date.today()):
 # 損益計算書データ取得 csv保存
 def balance_sheet_csv(stock_code):
     data = yf.Ticker(stock_code).balance_sheet
-    data.to_csv("./trade_package/data/balance_sheet/"+stock_code+".csv")
+    data.to_csv("../data/balance_sheet/"+stock_code+".csv")
 
 # キャッシュフロー計算書取得 csv保存
 def cashflow_csv(stock_code):
     data = yf.Ticker(stock_code).cashflow
-    data.to_csv("./trade_package/data/cashflow/"+stock_code+".csv")
+    data.to_csv("../data/cashflow/"+stock_code+".csv")
     
 # 貸借対照表（バランスシート）取得 csv保存
 def finance_csv(stock_code):
     data = yf.Ticker(stock_code).financials
-    data.to_csv("./trade_package/data/finance/"+stock_code+".csv")
+    data.to_csv("../data/finance/"+stock_code+".csv")
     
 # 銘柄のサマリー取得 csv保存
 def stock_info_csv(stock_code):
     data = yf.Ticker(stock_code).info
-    with open(f"./trade_package/data/stock_info/{stock_code}.json", mode="w") as f:
+    with open(f"../data/stock_info/{stock_code}.json", mode="w") as f:
         d = json.dumps(data)
         f.write(d)
 

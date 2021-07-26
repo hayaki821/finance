@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 import numpy as np
+import datetime
 
 DATA_PATH = "../data"
 MARKET_INFO_PATH = DATA_PATH + "/market_info"
@@ -72,7 +73,7 @@ def cc():
 
 # 株価取得
 def price(code, start=None, end=None):
-    df = pd.read_csv("./trade_package/data/price/"+code+".csv",index_col=0, parse_dates=True)
+    df = pd.read_csv("../data/price/"+code+".csv",index_col=0, parse_dates=True)
     return df[start:end]
 
 # 日足→〇足/分足→〇足
@@ -90,9 +91,10 @@ def change(df,freq):
 def stock_info(stock_code :list):
     info   = {} # 銘柄情報
     for code in stock_code:
+        code = change_stock_code(code)
         # print(stock_name, 'SEACH... ', end='')
         try:
-            with open(f"./trade_package/data/stock_info/{code}.json", mode="r") as f:
+            with open(f"../data/stock_info/{code}.json", mode="r") as f:
                 d = json.load(f)
             info[code]={'sharesOutstanding':d["sharesOutstanding"], # 発行株式数
                                 'forwardPER': d["forwardPE"],               # 予測PER
@@ -110,13 +112,14 @@ def stock_info(stock_code :list):
 # 損益計算書
 def finance(stock_code:list, item):
     # dummy作成
-    dummy = pd.read_csv('./trade_package/data/finance/'+stock_code[0]+'.csv', index_col=0).T[item]
+    dummy = pd.read_csv('../data/finance/'+stock_code[0]+'.csv', index_col=0).T[item]
     dummy[:] = np.nan
     
     earnings = {}
     for code in stock_code:
+        code = change_stock_code(code)
         try:
-            earnings[code] = pd.read_csv('./trade_package/data/finance/'+code+'.csv', index_col=0).T[item]
+            earnings[code] = pd.read_csv('../data/finance/'+code+'.csv', index_col=0).T[item]
         except:
             earnings[code] = dummy # エラー発生時はダミーを入れる
     return pd.DataFrame(earnings)
@@ -124,12 +127,25 @@ def finance(stock_code:list, item):
 # バランスシート
 def bs(stock_code:list, item):
     equity   = {} # 自己資本
-    dummy = pd.read_csv('./trade_package/data/balance_sheet/'+stock_code[0]+'.csv', index_col=0).T[item]
+    dummy = pd.read_csv('../data/balance_sheet/'+stock_code[0]+'.csv', index_col=0).T[item]
     dummy[:] = np.nan
     
     for code in stock_code:
+        code = change_stock_code(code)
         try:
-            equity[code] = pd.read_csv('./trade_package/data/balance_sheet/'+code+'.csv', index_col=0).T[item]
+            equity[code] = pd.read_csv('../data/balance_sheet/'+code+'.csv', index_col=0).T[item]
         except:
             equity[code] = dummy # エラー発生時はダミーを入れる
     return pd.DataFrame(equity)
+
+
+# stock codeを変形する
+# ex) 1333(int) -> 1333.T(string)
+def change_stock_code(stock_code:str):
+    return str(stock_code)+'.T' 
+
+# 現在の日付を取得
+# return %Y年%m月%d日
+def get_today():
+    dt_now = datetime.datetime.now()
+    return dt_now.strftime('%y-%m-%d')
