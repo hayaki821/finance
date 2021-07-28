@@ -2,18 +2,21 @@ import sys
 sys.path.append('../')
 from utils import * # libディレクトリ以下に設定した定数やutilクラスのインポート # 株価分析用に自作した関数をまとめたもの
 import pandas as pd
-import matplotlib.pyplot as plt
 # メモリリーク問題を防ぐ
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from math import ceil 
 import os
-
+from datetime import datetime    # "datetime" オブジェクトによる時刻計算
 # 1なら個別の株のRSIのグラフを生成
-plt_stock_rsi = 0
+plt_stock_rsi = 1
 
 # タイミングを取得　RSIがこのpointを基準にする
 point = 25
+save_dir = "./RSI_up_toukei_p"+ str(point) 
+if not os.path.isdir(save_dir):
+    os.makedirs(save_dir)
 # 銘柄コードの読み込み
 # stocks = ["7203"]
 stocks = get.topix500()
@@ -51,7 +54,7 @@ for code in stocks.code:
     # コードのprice情報を読み取る
     #  date     High      Low     Open    Close    Volume     Adj Close
     read_data = get.price(code)
-    
+
     # period=14固定
     for p in range(len(period)):
         data = read_data.copy()
@@ -112,17 +115,34 @@ for code in stocks.code:
                 elif(roc_index>41):
                     roc_index=41   
                 roc_map.at[index[roc_index],"rocUp_p"+str(period[p])+"_d"+str(d)] += 1
-        #xlim=["2018-11-17","2020-04-17"]
+        xlim=["20150101","20220101"]
+        high = max(data["High"])
+        low = min(data["Low"])
+        plot_starting_dtobject = datetime.strptime(xlim[0], "%Y%m%d")  # datetime object of datetime module = dtobject
+        plot_ending_dtobject   = datetime.strptime(xlim[1],   "%Y%m%d") 
+        plot_starting_time = datetime.timestamp(plot_starting_dtobject)
+        plot_ending_time = datetime.timestamp(plot_starting_dtobject)
         if plt_stock_rsi == 1:
-            fig = plt.figure()
+            ymin, ymax = 0,100
+            fig = plt.figure(figsize=[32, 4])
+            ax1 = fig.add_subplot(211)
+            ax2 = fig.add_subplot(212)
             #plt.subplots(figsize=(8.0, 6.0))
             #data.plot.line(style=['b.-'])
-            data.plot(subplots=True,figsize=[32, 4],y=['rsi','Close'],style=['b.-'],grid=True)
-
+            #data.plot(subplots=True,figsize=[40, 4],y=['rsi','Close'],style=['b.-'],grid=True,xlim=xlim)
+            ax1.plot(data["Close"])
+            ax1.set_ylabel('Close')
+            ax1.vlines(data.index[data.buy_sign], low, high, colors='red', linestyle='dashed')
+            ax1.set_xlim(plot_starting_dtobject, plot_ending_dtobject) 
+            ax2.plot(data["rsi"])
+            ax2.set_ylabel('RSI')
+            ax2.vlines(data.index[data.buy_sign], 0, 100, colors='red', linestyle='dashed')
+            ax2.set_xlim(plot_starting_dtobject, plot_ending_dtobject)
             fig.savefig( stock_rsi_save_dir + "/" + code+'.png')
             plt.cla()   # clear axis ################################################################################################################################# Python3 
             plt.clf() 
             plt.close('all')
+
 
 
 # 上昇した数をカウント/roc分布を画像出力
@@ -147,6 +167,6 @@ for p in range(len(period)):
         win = round(result.at[p,"rocUp_d"+str(day[d])+"_plus"]/result.at[p,"buy_sign_count"]*100,1)
         fig.text(0.75,0.5,"{:}%".format(win),size=40,color="#7dc4d1")
         fig.text(0.17,0.5,"{:}%".format(100-win),size=40,color="#ffa8ac")
-        fig.savefig( title+".png", bbox_inches='tight')
+        fig.savefig( save_dir + "/" + title+".png", bbox_inches='tight')
 
 print(result)
