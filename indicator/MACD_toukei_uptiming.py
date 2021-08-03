@@ -39,14 +39,9 @@ import matplotlib.pyplot as plt
 from math import ceil 
 import os
 
-## TODO koko
-##################################
-#################################
-
-
 # save dir
 MACD_dir = "./MACD"
-save_dir = MACD_dir + "/MACD_toukei_p"
+save_dir = MACD_dir + "/MACD_toukei"
 if not os.path.isdir(MACD_dir):
     os.makedirs(MACD_dir)
 if not os.path.isdir(save_dir):
@@ -162,10 +157,6 @@ for code in stocks.code:
         # macd_line  signal_line  macd_slop  signal_slop   line_deg    roc_d1  roc_d1_point     roc_d3  roc_d3_point    
         #  roc_d5  roc_d5_point    roc_d10  roc_d10_point
 # 上昇した数をカウント/roc分布を画像出力
-
-### TODO 確率
-#################
-#################
 for p in range(len(period)):
     result["g_p_count"].iat[p] = sum(roc_map.iloc[:,p*len(day)])
     for d in range(len(day)):

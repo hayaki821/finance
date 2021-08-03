@@ -78,8 +78,7 @@ for code in stocks.code:
                 elif(roc_index>41):
                     roc_index=41   
                 roc_map.at[index[roc_index],"roc_p"+str(period[p])+"_d"+str(d)] += 1
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
+
 
 # 上昇した数をカウント/roc分布を画像出力
 for p in range(len(period)):

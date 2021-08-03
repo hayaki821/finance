@@ -12,6 +12,8 @@ today = get_today()
 point = 20
 # save dir
 save_dir = "./RSI_toukei_p"+ str(point) + "/" + today
+if not os.path.isdir(save_dir):
+    os.makedirs(save_dir)
 # 銘柄コードの読み込み
 stocks = get.topix500()
 
@@ -82,8 +84,7 @@ for code in stocks.code:
                     roc_index=41   
                 roc_map.at[index[roc_index],"roc_p"+str(period[p])+"_d"+str(d)] += 1
 
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
+
 # 上昇した数をカウント/roc分布を画像出力
 for p in range(len(period)):
     result["buy_sign_count"].iat[p] = sum(roc_map.iloc[:,p*len(day)])
