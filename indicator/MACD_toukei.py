@@ -1,4 +1,6 @@
 """
+参照
+・https://www.fxtrade-lab.com/10461
 ダイバージェンス・・・価格は上昇しているがオシレーター系のウェーブは下降・・下げの前兆
 MACD特徴
 １　直近の値に重みを付けた平均移動線（実際の動きに近い）＝EMAの差
@@ -28,6 +30,7 @@ MACDがゴールデンクロスしてそれに伴いRSIも上がっていてい�
 「ストキャスティクス」と併用する
 ダイバージェンスを利用
 ヒストグラムの反転利用
+ゼロライン
 """
 
 
@@ -35,29 +38,34 @@ import sys
 sys.path.append('../')
 from utils import * # libディレクトリ以下に設定した定数やutilクラスのインポート # 株価分析用に自作した関数をまとめたもの
 import pandas as pd
+# メモリリーク問題を防ぐ
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from math import ceil 
 import os
-
-## TODO koko
-##################################
-#################################
-
-
+from datetime import datetime    # "datetime" オブジェクトによる時刻計算
+import numpy as np
+# 1なら個別の株のMACDのグラフを生成
+plt_stock_macd = 1
 # save dir
 MACD_dir = "./MACD"
-save_dir = MACD_dir + "/MACD_toukei_p"
+save_dir = MACD_dir + "/MACD_up_toukei"
+stock_macd_save_dir = MACD_dir + "./MACD_stocks_graph"
 if not os.path.isdir(MACD_dir):
     os.makedirs(MACD_dir)
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
+if not os.path.isdir(stock_macd_save_dir):
+    os.makedirs(stock_macd_save_dir)
 # 銘柄コードの読み込み
 stocks = get.topix500()
 
 ## resultデータフレーム
 day = [1,3,5,10]    # 〇日後に上昇しているかの〇を設定
 col=["g_p_count"]   # ゴールデンクロスの総数
-period = [[6,19,9],[8,17,9],[12,26,9]] # 移動平均の期間
+# period = [[6,19,9],[8,17,9],[12,26,9]] # 移動平均の期間
+period = [[12,26,9]] # 移動平均の期間
 for d in day:
     col.append("roc_d"+str(d)+"_plus")
 result = pd.DataFrame(data=0,index=range(len(period)),columns=col)
@@ -87,6 +95,8 @@ for code in stocks.code:
     for p in range(len(period)): 
         data = read_data.copy()
         # MACDを計算
+        # param date, 短期移動平均日数,長期移動平均日数, macdの平均移動日数
+        # return  macd,signal,hist　がそれぞれdataに結合
         tech.macd(data, fastperiod=period[p][0], slowperiod=period[p][1], signalperiod=period[p][2])
         data["g_point"] = False
 
@@ -151,6 +161,40 @@ for code in stocks.code:
                 elif(roc_index>41):
                     roc_index=41   
                 roc_map.at[index[roc_index],"roc_p"+str(period[p])+"_d"+str(d)] += 1
+
+        # 個別の銘柄のグラフとMACDのグラフを生成
+        xlim=["20150101","20220101"]
+        high = max(data["High"])
+        low = min(data["Low"])
+        macdHigh = np.nanmax(data["macd"])
+        macdLow = np.nanmin(data["macd"])
+
+        plot_starting_dtobject = datetime.strptime(xlim[0], "%Y%m%d")  # datetime object of datetime module = dtobject
+        plot_ending_dtobject   = datetime.strptime(xlim[1],   "%Y%m%d") 
+        plot_starting_time = datetime.timestamp(plot_starting_dtobject)
+        plot_ending_time = datetime.timestamp(plot_starting_dtobject)
+        if plt_stock_macd == 1:
+            ymin, ymax = 0,100
+            fig = plt.figure(figsize=[32, 4])
+            ax1 = fig.add_subplot(211)
+            ax2 = fig.add_subplot(212)
+            #plt.subplots(figsize=(8.0, 6.0))
+            #data.plot.line(style=['b.-'])
+            #data.plot(subplots=True,figsize=[40, 4],y=['rsi','Close'],style=['b.-'],grid=True,xlim=xlim)
+            ax1.plot(data["Close"])
+            ax1.set_ylabel('Close')
+            ax1.vlines(data.index[data.g_point], low, high, colors='red', linestyle='dashed')
+            ax1.set_xlim(plot_starting_dtobject, plot_ending_dtobject)
+            ax2.vlines(data.index[data.g_point], macdLow, macdHigh, colors='red', linestyle='dashed')
+            ax2.plot(data["macd"])
+            ax2.plot(data["signal"])
+            ax2.set_ylabel('MACD')
+            
+            ax2.set_xlim(plot_starting_dtobject, plot_ending_dtobject)
+            fig.savefig( stock_macd_save_dir + "/" + code+'.png')
+            plt.cla()   # clear axis ################################################################################################################################# Python3 
+            plt.clf() 
+            plt.close('all')
         # 上昇していたらカウンタを加算
         data.dropna(inplace=True)
         if(len(data.index[data.g_point])>0):
@@ -161,11 +205,12 @@ for code in stocks.code:
         #  High     Low    Open   Close     Volume    Adj Close        macd      signal      hist  g_point   
         # macd_line  signal_line  macd_slop  signal_slop   line_deg    roc_d1  roc_d1_point     roc_d3  roc_d3_point    
         #  roc_d5  roc_d5_point    roc_d10  roc_d10_point
-# 上昇した数をカウント/roc分布を画像出力
 
-### TODO 確率
-#################
-#################
+
+
+
+
+# 上昇した数をカウント/roc分布を画像出力
 for p in range(len(period)):
     result["g_p_count"].iat[p] = sum(roc_map.iloc[:,p*len(day)])
     for d in range(len(day)):
@@ -183,6 +228,9 @@ for p in range(len(period)):
         ax.set_title(title,fontsize=24)
         ax.set_xlabel("Rate of Change [%]", fontsize=24)
         ax.set_ylabel("counts", fontsize=24)
+        win = round(result.at[p,"roc_d"+str(day[d])+"_plus"]/result.at[p,"g_p_count"]*100,1)
+        fig.text(0.75,0.5,"{:}%".format(win),size=40,color="#7dc4d1")
+        fig.text(0.17,0.5,"{:}%".format(100-win),size=40,color="#ffa8ac")
         fig.savefig(save_dir + "/" + title +".png", bbox_inches='tight')
 
 print(result)

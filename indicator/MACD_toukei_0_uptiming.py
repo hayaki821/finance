@@ -1,4 +1,6 @@
 """
+参照
+・https://www.fxtrade-lab.com/10461
 ダイバージェンス・・・価格は上昇しているがオシレーター系のウェーブは下降・・下げの前兆
 MACD特徴
 １　直近の値に重みを付けた平均移動線（実際の動きに近い）＝EMAの差
@@ -28,6 +30,7 @@ MACDがゴールデンクロスしてそれに伴いRSIも上がっていてい�
 「ストキャスティクス」と併用する
 ダイバージェンスを利用
 ヒストグラムの反転利用
+ゼロライン
 """
 
 
@@ -36,31 +39,41 @@ sys.path.append('../')
 from utils import * # libディレクトリ以下に設定した定数やutilクラスのインポート # 株価分析用に自作した関数をまとめたもの
 import pandas as pd
 import matplotlib.pyplot as plt
+# メモリリーク問題を防ぐ
+import matplotlib
+matplotlib.use("Agg")
 from math import ceil 
 import os
+from datetime import datetime
 
+
+# 1なら個別の株のMACDのグラフを生成
+plt_stock_macd = 1
 # save dir
 MACD_dir = "./MACD"
-save_dir = MACD_dir + "/MACD_toukei"
+save_dir = MACD_dir + "/MACD_up_toukei"
+stock_macd_save_dir = MACD_dir + "./MACD_stocks_graph"
 if not os.path.isdir(MACD_dir):
     os.makedirs(MACD_dir)
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
+if not os.path.isdir(stock_macd_save_dir):
+    os.makedirs(stock_macd_save_dir)
 # 銘柄コードの読み込み
 stocks = get.topix500()
 
 ## resultデータフレーム
 day = [1,3,5,10]    # 〇日後に上昇しているかの〇を設定
 col=["g_p_count"]   # ゴールデンクロスの総数
-period = [[6,19,9],[8,17,9],[12,26,9]] # 移動平均の期間
+period = [[12,26,9]] # 移動平均の期間
 for d in day:
-    col.append("roc_d"+str(d)+"_plus")
+    col.append("rocUp_d"+str(d)+"_plus")
 result = pd.DataFrame(data=0,index=range(len(period)),columns=col)
 # rocマップのデータフレーム
 col=[]
 for p in period:
     for d in day:
-        col.append("roc_p"+str(p)+"_d"+str(d))
+        col.append("rocUp_p"+str(p)+"_d"+str(d))
 index=[]
 # 分布図の設定(-40~40%を2%間隔)
 for i in range(-42,42,2):
@@ -84,12 +97,16 @@ for code in stocks.code:
         # MACDを計算
         tech.macd(data, fastperiod=period[p][0], slowperiod=period[p][1], signalperiod=period[p][2])
         data["g_point"] = False
+        data["g_point_up"] = False
 
         # ゴールデンクロスのタイミングを取得
         for i in range(len(data.index)-1):
             if(data.macd[i]<data.signal[i] and data.macd[i+1]>data.signal[i+1]):
                 data["g_point"].iat[i+1] = True
-
+            # rsiがpointより下で当日より、次の日が上がっていて、前の日よりも下がっているとき
+            if(data.rsi[i]<point and data.rsi[i+1]>data.rsi[i] and data.rsi[i-1]>=data.rsi[i]):
+                # iat = 行番号
+                data["buy_sign_up"].iat[i+1] = True
         # ゴールデンクロス時の傾き/角度を算出
         data["macd_line"] = np.nan
         data["signal_line"] = np.nan

@@ -10,7 +10,7 @@ from math import ceil
 import os
 from datetime import datetime    # "datetime" オブジェクトによる時刻計算
 # 1なら個別の株のRSIのグラフを生成
-plt_stock_rsi = 1
+plt_stock_rsi = 0
 
 # タイミングを取得　RSIがこのpointを基準にする
 point = 25
