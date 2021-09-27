@@ -1,0 +1,1 @@
+https://note.com/natto_nebaneba/n/n501162990e63
